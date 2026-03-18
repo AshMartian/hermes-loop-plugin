@@ -23,7 +23,7 @@ This guide provides step-by-step instructions for maintainers on how to publish 
 
 Before publishing, ensure you have the following:
 
-1. **Maintainer Access** to the GitHub repository
+1. **Maintainer Access** to the GitHub repository (https://github.com/AshMartian/hermes-loop-plugin)
 2. **PyPI Account**: Create one at https://pypi.org/account/register/ if needed
 3. **Build Tools Installed**:
    ```bash
@@ -233,13 +233,13 @@ git tag v1.0.1
 git push origin --tags
 ```
 
-This creates a visible release point for users to reference.
+This creates a visible release point for users to reference on our [GitHub repository](https://github.com/AshMartian/hermes-loop-plugin).
 
 ---
 
 ### 2. Create GitHub Release
 
-On the GitHub repository page (https://github.com/NousResearch/hermes-loop-plugin):
+On the GitHub repository page (https://github.com/AshMartian/hermes-loop-plugin):
 
 1. Click **Releases** → **Draft a new release**
 2. Select the tag you just created (`v1.0.1`)
@@ -287,7 +287,7 @@ We're excited to announce version X.X.X of the Hermes Loop plugin!
 
 📦 Install/upgrade: pip install --upgrade hermes-loop-plugin
 
-🔗 Full changelog: https://github.com/NousResearch/hermes-loop-plugin/blob/main/CHANGELOG.md
+🔗 Full changelog: https://github.com/AshMartian/hermes-loop-plugin/blob/main/CHANGELOG.md
 ```
 
 ---
@@ -438,6 +438,7 @@ grep "^version" pyproject.toml plugin.yaml
 - [Twine User Guide](https://twine.readthedocs.io/)
 - [Setuptools Documentation](https://setuptools.pypa.io/)
 - [Hermes Agent Plugin Development](https://github.com/NousResearch/hermes-agent)
+- **[hermes-loop-plugin Repository](https://github.com/AshMartian/hermes-loop-plugin)**
 
 ---
 

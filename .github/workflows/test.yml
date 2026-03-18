@@ -33,22 +33,22 @@ jobs:
           python -m build
           ls -la dist/
       
-      - name: Create and test virtual environment
+- name: Create and test virtual environment
         run: |
           cd /tmp
           rm -rf test-venv-${{ matrix.python-version }}
           python3 -m venv test-venv-${{ matrix.python-version }}
           source test-venv-${{ matrix.python-version }}/bin/activate
           pip install --upgrade pip >/dev/null 2>&1
-          pip install build/dist/*.whl
+          pip install ../hermes-loop-plugin/dist/*.whl
           echo "Installed packages:"
           pip list
-      
-      - name: Verify package metadata
+
+      - name: Verify package metadata and tools
         run: |
           cd /tmp/test-venv-${{ matrix.python-version }}
           source bin/activate
-          python3 -c "
+          python3 << 'PYTHON_SCRIPT'
 import hermes_loop_plugin
 print('Module imported successfully')
 
@@ -61,14 +61,14 @@ expected_tools = ['init_loop', 'loop_status', 'complete_task',
 
 missing = []
 for tool in expected_tools:
-    if f'name=\"{tool}\"' not in content and f\"name='{tool}'\" not in content:
+    if f'name="{tool}"' not in content and f"name='{tool}'" not in content:
         missing.append(tool)
 
 if missing:
     raise Exception(f'Missing tools: {missing}')
 
 print('All 6 tools registered successfully')
-"
+PYTHON_SCRIPT
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

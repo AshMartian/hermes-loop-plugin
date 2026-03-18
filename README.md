@@ -27,12 +27,12 @@ This plugin enables **persistent multi-step workflows** where tasks span multipl
 
 ## Installation
 
-### Quick Start with pip
+### From GitHub (Current) 🚀
 
-Install the Hermes Loop plugin directly from PyPI:
+The plugin is available for direct installation from our GitHub repository:
 
 ```bash
-pip install hermes-loop-plugin
+pip install git+https://github.com/AshMartian/hermes-loop-plugin.git@v1.0.0
 ```
 
 After installation, the plugin will be automatically discovered when you start Hermes Agent. No additional configuration required!
@@ -62,7 +62,7 @@ For development or custom builds, install from source:
 
 ```bash
 # Clone the repository
-git clone https://github.com/NousResearch/hermes-loop-plugin.git
+git clone https://github.com/AshMartian/hermes-loop-plugin.git
 cd hermes-loop-plugin
 
 # Install in editable mode for development
@@ -77,9 +77,20 @@ pip install dist/hermes_loop_plugin-*.whl
 
 If you need to install the plugin manually:
 
-1. Download the package from [PyPI](https://pypi.org/project/hermes-loop-plugin/) or GitHub Releases
-2. Install using pip: `pip install hermes-loop-plugin-X.X.X.tar.gz`
+1. Download the package from [GitHub Releases](https://github.com/AshMartian/hermes-loop-plugin/releases) or clone the repository
+2. Install using pip: `pip install dist/hermes_loop_plugin-X.X.X.tar.gz`
 3. Restart Hermes Agent to load the plugin
+
+### 📦 PyPI Installation (Coming Soon!)
+
+The plugin will be available on [PyPI](https://pypi.org/) for easier installation:
+
+```bash
+# Coming soon!
+pip install hermes-loop-plugin
+```
+
+**Track progress:** Check our [GitHub Releases](https://github.com/AshMartian/hermes-loop-plugin/releases) for updates when we publish to PyPI.
 
 ## Quick Start
 
@@ -394,7 +405,9 @@ The Hermes Loop plugin follows the same conceptual model as ralph-wiggum but is 
 
 ## License
 
-MIT License - see LICENSE file in repository root (when published)
+MIT License - see LICENSE file in repository root
+
+**Repository:** [https://github.com/AshMartian/hermes-loop-plugin](https://github.com/AshMartian/hermes-loop-plugin)
 
 ## Contributing
 
