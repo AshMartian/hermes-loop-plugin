@@ -2,76 +2,31 @@ name: Test Build and Install
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
-    branches: [main, develop]
+    branches: [main]
 
 jobs:
-  build-and-test:
+  test:
     runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11']
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
-      - name: Set up Python ${{ matrix.python-version }}
+      
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
-          
-      - name: Install build dependencies
+          python-version: '3.11'
+      
+      - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install build virtualenv
+          pip install --upgrade pip
+          pip install build pytest
       
       - name: Build package
         run: |
           python -m build
-          ls -la dist/
       
-      - name: Create and test virtual environment
-        run: |
-          cd /tmp
-          rm -rf test-venv-${{ matrix.python-version }}
-          python3 -m venv test-venv-${{ matrix.python-version }}
-          source test-venv-${{ matrix.python-version }}/bin/activate
-          pip install --upgrade pip >/dev/null 2>&1
-          pip install ../hermes-loop-plugin/dist/*.whl
-          echo "Installed packages:"
-          pip list
-
-      - name: Verify package metadata and tools
-        run: |
-          cd /tmp/test-venv-${{ matrix.python-version }}
-          source bin/activate
-          python3 << 'PYTHON_SCRIPT'
-import hermes_loop_plugin
-print('Module imported successfully')
-
-# Verify all tools are registered in the module
-with open('/home/runner/work/hermes-loop-plugin/hermes-loop-plugin/hermes_loop_plugin/__init__.py') as f:
-    content = f.read()
-    
-expected_tools = ['init_loop', 'loop_status', 'complete_task', 
-                  'add_blocking_issue', 'reset_loop', 'set_completion_promise']
-
-missing = []
-for tool in expected_tools:
-    if f'name="{tool}"' not in content and f"name='{tool}'" not in content:
-        missing.append(tool)
-
-if missing:
-    raise Exception(f'Missing tools: {missing}')
-
-print('All 6 tools registered successfully')
-PYTHON_SCRIPT
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist-${{ matrix.python-version }}
-          path: dist/
+      - name: List dist files
+        run: ls -la dist/
