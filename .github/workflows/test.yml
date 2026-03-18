@@ -1,78 +1,77 @@
-1|name: Test Build and Install
-     2|
-     3|on:
-     4|  push:
-     5|    branches: [main, develop]
-     6|  pull_request:
-     7|    branches: [main, develop]
-     8|
-     9|jobs:
-    10|  build-and-test:
-    11|    runs-on: ubuntu-latest
-    12|    
-    13|    strategy:
-    14|      matrix:
-    15|        python-version: ['3.8', '3.9', '3.10', '3.11']
-    16|    
-    17|    steps:
-    18|      - name: Checkout code
-    19|        uses: actions/checkout@v4
-    20|        
-    21|      - name: Set up Python ${{ matrix.python-version }}
-    22|        uses: actions/setup-python@v5
-    23|        with:
-    24|          python-version: ${{ matrix.python-version }}
-    25|          
-    26|      - name: Install build dependencies
-    27|        run: |
-    28|          python -m pip install --upgrade pip
-    29|          pip install build virtualenv
-    30|      
-    31|      - name: Build package
-    32|        run: |
-    33|          python -m build
-    34|          ls -la dist/
-    35|      
-    36|- name: Create and test virtual environment
-    37|        run: |
-    38|          cd /tmp
-    39|          rm -rf test-venv-${{ matrix.python-version }}
-    40|          python3 -m venv test-venv-${{ matrix.python-version }}
-    41|          source test-venv-${{ matrix.python-version }}/bin/activate
-    42|          pip install --upgrade pip >/dev/null 2>&1
-    43|          pip install ../hermes-loop-plugin/dist/*.whl
-    44|          echo "Installed packages:"
-    45|          pip list
-    46|
-    47|      - name: Verify package metadata and tools
-    48|        run: |
-    49|          cd /tmp/test-venv-${{ matrix.python-version }}
-    50|          source bin/activate
-    51|          python3 << 'PYTHON_SCRIPT'
-    52|import hermes_loop_plugin
-    53|print('Module imported successfully')
-    54|
-    55|# Verify all tools are registered in the module
-    56|with open('/home/runner/work/hermes-loop-plugin/hermes-loop-plugin/hermes_loop_plugin/__init__.py') as f:
-    57|    content = f.read()
-    58|    
-    59|expected_tools = ['init_loop', 'loop_status', 'complete_task', 
-    60|                  'add_blocking_issue', 'reset_loop', 'set_completion_promise']
-    61|
-    62|missing = []
-    63|for tool in expected_tools:
-    64|    if f'name="{tool}"' not in content and f"name='{tool}'" not in content:
-    65|        missing.append(tool)
-    66|
-    67|if missing:
-    68|    raise Exception(f'Missing tools: {missing}')
-    69|
-    70|print('All 6 tools registered successfully')
-    71|PYTHON_SCRIPT
-    72|
-    73|      - name: Upload build artifacts
-    74|        uses: actions/upload-artifact@v4
-    75|        with:
-    76|          name: dist-${{ matrix.python-version }}
-    77|          path: dist/
-    78|
+name: Test Build and Install
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build virtualenv
+      
+      - name: Build package
+        run: |
+          python -m build
+          ls -la dist/
+      
+      - name: Create and test virtual environment
+        run: |
+          cd /tmp
+          rm -rf test-venv-${{ matrix.python-version }}
+          python3 -m venv test-venv-${{ matrix.python-version }}
+          source test-venv-${{ matrix.python-version }}/bin/activate
+          pip install --upgrade pip >/dev/null 2>&1
+          pip install ../hermes-loop-plugin/dist/*.whl
+          echo "Installed packages:"
+          pip list
+
+      - name: Verify package metadata and tools
+        run: |
+          cd /tmp/test-venv-${{ matrix.python-version }}
+          source bin/activate
+          python3 << 'PYTHON_SCRIPT'
+import hermes_loop_plugin
+print('Module imported successfully')
+
+# Verify all tools are registered in the module
+with open('/home/runner/work/hermes-loop-plugin/hermes-loop-plugin/hermes_loop_plugin/__init__.py') as f:
+    content = f.read()
+    
+expected_tools = ['init_loop', 'loop_status', 'complete_task', 
+                  'add_blocking_issue', 'reset_loop', 'set_completion_promise']
+
+missing = []
+for tool in expected_tools:
+    if f'name="{tool}"' not in content and f"name='{tool}'" not in content:
+        missing.append(tool)
+
+if missing:
+    raise Exception(f'Missing tools: {missing}')
+
+print('All 6 tools registered successfully')
+PYTHON_SCRIPT
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.python-version }}
+          path: dist/
