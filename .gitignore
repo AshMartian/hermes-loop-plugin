@@ -1,0 +1,37 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+.env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# State files (user data)
+.hermes-loop-state.json
+.ralph-state.json
+*.state.json
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# Python
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS
+.DS_Store
+Thumbs.db
