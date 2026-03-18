@@ -1,4 +1,4 @@
-     1|name: Test Build and Install
+1|name: Test Build and Install
      2|
      3|on:
      4|  push:
