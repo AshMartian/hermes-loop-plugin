@@ -1,9 +1,17 @@
 name: hermes-loop
 version: 1.0.0
 description: Continuous task execution loop plugin that keeps the agent running until goals are completed via state file monitoring and optional completion promises
-author: Hermes Agent Community
+author: Ash Martian
 license: MIT
-provides:
-  tools: false
-  hooks: true
-requires_env: []
+provides_tools:
+  - loop_status
+  - set_completion_promise
+  - init_loop
+  - complete_task
+  - add_blocking_issue
+  - reset_loop
+provides_hooks:
+  - post_tool_call
+  - on_session_start
+  - pre_llm_call
+  - on_session_end

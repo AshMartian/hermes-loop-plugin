@@ -12,162 +12,140 @@ logger = logging.getLogger(__name__)
 
 
 def _on_post_tool_call(tool_name: str, args: dict, result: str, task_id: str, **kwargs):
-    """Hook: runs after every tool call to check loop continuation."""
-    
-    # Only process if this is a loop-related tool or we're in a loop session
-    loop_tools = ['loop_status', 'set_completion_promise', 'init_loop', 
+    """Hook: runs after every tool call to log loop-related tool usage."""
+    loop_tools = ['loop_status', 'set_completion_promise', 'init_loop',
                   'complete_task', 'add_blocking_issue', 'reset_loop']
-    
-    if not any(t in tool_name for t in loop_tools):
-        return
-    
+    if any(t in tool_name for t in loop_tools):
+        logger.debug("[hermes-loop] tool=%s session=%s", tool_name, task_id)
+
+
+def _on_session_start(session_id: str, model: str, platform: str, **kwargs):
+    """Hook: runs once when a new session is created (first turn only)."""
     cwd = kwargs.get('cwd', str(Path.cwd()))
     state_file_path = Path(cwd) / '.hermes-loop-state.json'
-    
-    # Check if we have an active state file
+
     if not state_file_path.exists():
         return
-    
+
     try:
         with open(state_file_path) as f:
             state = json.load(f)
-        
+
         total_tasks = state.get('total_tasks', 0)
         completed_tasks = state.get('completed_tasks', 0)
-        blocking_issues = state.get('blocking_issues', [])
-        
-        # If all tasks complete, signal loop end
-        if completed_tasks >= total_tasks and not blocking_issues:
-            logger.info(f"[hermes-loop] All {total_tasks} tasks completed at session {task_id}")
-            
-            # Add completion marker to transcript for detection by stop hook
-            transcript_path = kwargs.get('transcript_path')
-            if transcript_path:
-                try:
-                    with open(transcript_path, 'a') as f:
-                        f.write(f"\n# [HERMES-LOOP] ALL_TASKS_COMPLETE at {task_id}\n")
-                except Exception as e:
-                    logger.error(f"Failed to write completion marker: {e}")
-                    
-    except Exception as e:
-        logger.error(f"[hermes-loop] Error in post_tool_call hook: {e}")
 
-
-def _on_session_start(session_id: str, platform: str, **kwargs):
-    """Hook: runs when a new session starts."""
-    
-    cwd = kwargs.get('cwd', str(Path.cwd()))
-    state_file_path = Path(cwd) / '.hermes-loop-state.json'
-    
-    if not state_file_path.exists():
-        return
-    
-    try:
-        with open(state_file_path) as f:
-            state = json.load(f)
-        
-        total_tasks = state.get('total_tasks', 0)
-        completed_tasks = state.get('completed_tasks', 0)
-        
         if total_tasks > 0 and completed_tasks < total_tasks:
             logger.info(
-                f"[hermes-loop] Resuming loop from session {session_id}: "
-                f"{completed_tasks}/{total_tasks} tasks complete"
+                "[hermes-loop] Resuming loop (session %s): %d/%d tasks complete",
+                session_id, completed_tasks, total_tasks,
             )
-            
     except Exception as e:
-        logger.error(f"[hermes-loop] Error in on_session_start hook: {e}")
+        logger.error("[hermes-loop] Error in on_session_start hook: %s", e)
 
 
-def _on_stop_hook(input_data: dict, **kwargs) -> int:
-    """Hook: determines if loop should continue or stop.
-    
-    Returns 0 to continue, non-zero to stop.
-    This is the main loop controller."""
-    
-    cwd = input_data.get('cwd', str(Path.cwd()))
-    transcript_path = input_data.get('transcript_path')
-    
+def _on_pre_llm_call(session_id: str, user_message: str, conversation_history: list,
+                     is_first_turn: bool, model: str, platform: str, **kwargs) -> dict:
+    """Hook: runs before each LLM turn to inject loop state as system context.
+
+    Returns {"context": ...} to append guidance to the ephemeral system prompt,
+    which is the hermes-supported way to influence loop continuation.
+    """
+    cwd = kwargs.get('cwd', str(Path.cwd()))
     state_file_path = Path(cwd) / '.hermes-loop-state.json'
-    
-    # If no state file, nothing to continue
+
     if not state_file_path.exists():
-        return 0
-    
+        return
+
     try:
         with open(state_file_path) as f:
             state = json.load(f)
-        
+
         total_tasks = state.get('total_tasks', 0)
         completed_tasks = state.get('completed_tasks', 0)
         blocking_issues = state.get('blocking_issues', [])
         completion_promise = state.get('completion_promise')
-        
-        # Check for explicit ALL_TASKS_COMPLETE in transcript (backup detection)
-        if transcript_path and Path(transcript_path).exists():
-            with open(transcript_path) as f:
-                content = f.read()
-                if 'ALL_TASKS_COMPLETE' in content:
-                    logger.info("[hermes-loop] Detected ALL_TASKS_COMPLETE marker")
-                    return 1  # Stop
-        
-        # Check blocking issues first
+
         if blocking_issues:
-            logger.warning(
-                f"[hermes-loop] Blocking issues detected, stopping loop: {blocking_issues}"
-            )
-            return 1
-        
-        # Check completion promise
+            return {
+                "context": (
+                    f"[HERMES-LOOP] The loop is BLOCKED and cannot continue. "
+                    f"Blocking issues: {blocking_issues}. "
+                    "Stop work, report these issues to the user, and do not attempt further tasks."
+                )
+            }
+
+        # Check completion promise fulfillment
+        promise_status = ""
         if completion_promise and not completion_promise.get('fulfilled', False):
             promise_type = completion_promise.get('promise_type', '')
             condition = completion_promise.get('condition', '')
-            
-            # Evaluate the promise condition
             promise_fulfilled = False
-            
+
             if promise_type == 'task_count':
                 expected = int(completion_promise.get('expected_value', 0))
                 promise_fulfilled = completed_tasks >= expected
-                
             elif promise_type == 'file_exists':
-                check_path = Path(cwd) / condition
-                promise_fulfilled = check_path.exists()
-                
+                promise_fulfilled = (Path(cwd) / condition).exists()
             elif promise_type == 'content_match':
                 check_path = Path(cwd) / condition
                 if check_path.exists():
-                    content = check_path.read_text()
                     pattern = completion_promise.get('expected_value', '')
-                    promise_fulfilled = pattern in content
-            
-            # Update fulfilled status
+                    promise_fulfilled = pattern in check_path.read_text()
+
             if promise_fulfilled:
                 completion_promise['fulfilled'] = True
                 with open(state_file_path, 'w') as f:
                     json.dump(state, f, indent=2)
-            
-            if not promise_fulfilled:
-                logger.info(
-                    f"[hermes-loop] Completion promise not yet fulfilled "
-                    f"({promise_type}: {condition}), continuing loop"
+                promise_status = (
+                    f" Completion promise ({promise_type}: {condition}) is NOW FULFILLED."
+                    " Wrap up and summarize results."
                 )
-                return 0
-        
-        # Check if all tasks complete
+            else:
+                promise_status = (
+                    f" Completion promise ({promise_type}: {condition}) not yet met — keep working."
+                )
+
         if completed_tasks >= total_tasks:
-            logger.info(f"[hermes-loop] All {total_tasks} tasks completed, stopping loop")
-            return 1
-        
-        # Continue the loop
-        logger.debug(
-            f"[hermes-loop] Continuing loop: {completed_tasks}/{total_tasks} tasks complete"
-        )
-        
+            return {
+                "context": (
+                    f"[HERMES-LOOP] All {total_tasks} tasks are complete.{promise_status} "
+                    "Summarize what was accomplished and wrap up."
+                )
+            }
+
+        remaining = total_tasks - completed_tasks
+        return {
+            "context": (
+                f"[HERMES-LOOP] Loop active: {completed_tasks}/{total_tasks} tasks complete "
+                f"({remaining} remaining).{promise_status} Continue with the next task."
+            )
+        }
+
     except Exception as e:
-        logger.error(f"[hermes-loop] Error in stop hook: {e}")
-    
-    return 0  # Default to continue on error
+        logger.error("[hermes-loop] Error in pre_llm_call hook: %s", e)
+
+
+def _on_session_end(session_id: str, completed: bool, interrupted: bool,
+                    model: str, platform: str, **kwargs):
+    """Hook: runs at the end of every run_conversation call."""
+    cwd = kwargs.get('cwd', str(Path.cwd()))
+    state_file_path = Path(cwd) / '.hermes-loop-state.json'
+
+    if not state_file_path.exists():
+        return
+
+    try:
+        with open(state_file_path) as f:
+            state = json.load(f)
+
+        completed_tasks = state.get('completed_tasks', 0)
+        total_tasks = state.get('total_tasks', 0)
+        logger.info(
+            "[hermes-loop] Session %s ended (completed=%s interrupted=%s): %d/%d tasks",
+            session_id, completed, interrupted, completed_tasks, total_tasks,
+        )
+    except Exception as e:
+        logger.error("[hermes-loop] Error in on_session_end hook: %s", e)
 
 
 def register(ctx):
@@ -281,9 +259,10 @@ def register(ctx):
         handler=tools.reset_loop
     )
     
-    # Register hooks for loop continuation control
+    # Register lifecycle hooks
     ctx.register_hook("post_tool_call", _on_post_tool_call)
     ctx.register_hook("on_session_start", _on_session_start)
-    ctx.register_hook("stop_hook", _on_stop_hook)
-    
-    logger.info("[hermes-loop] Plugin registered with 6 tools and 3 hooks")
+    ctx.register_hook("pre_llm_call", _on_pre_llm_call)
+    ctx.register_hook("on_session_end", _on_session_end)
+
+    logger.info("[hermes-loop] Plugin registered with 6 tools and 4 hooks")
