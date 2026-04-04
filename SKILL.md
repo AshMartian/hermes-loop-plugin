@@ -134,3 +134,5 @@ mv .hermes-loop-state.json .hermes-loop-state.json.bak
 ```
 
 The plugin detects the missing file and stops injecting loop context.
+
+If the user called for this skill, they want you to start a loop. Gather some context and immediatly init_loop with the appropriate parameters. Do not wait for the user to explicitly ask you to start the loop.
