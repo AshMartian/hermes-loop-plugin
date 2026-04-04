@@ -487,3 +487,58 @@ class TestGatewayHandler:
                 "cwd": str(tmp_path),
             })
         assert not caplog.records  # no state file → silent no-op
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 5. Resume-prefill lifecycle — tools.py
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestResumePrefill:
+    """Verify the session-resume prefill file is written / cleared correctly."""
+
+    @pytest.fixture(autouse=True)
+    def _patch_resume_file(self, tmp_path, monkeypatch):
+        """Redirect _RESUME_FILE away from ~/.hermes/ and stub config setup."""
+        import tools
+        self._resume = tmp_path / "loop-resume.json"
+        monkeypatch.setattr(tools, "_RESUME_FILE", self._resume)
+        # Don't touch the real ~/.hermes/config.yaml during tests
+        monkeypatch.setattr(tools, "_configure_auto_resume", lambda: None)
+
+    def test_init_loop_writes_prefill(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        import tools
+        tools.init_loop({"total_tasks": 3})
+        assert self._resume.exists()
+
+    def test_prefill_is_valid_json_user_message(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        import tools
+        tools.init_loop({"total_tasks": 3})
+        data = json.loads(self._resume.read_text())
+        assert isinstance(data, list) and len(data) == 1
+        assert data[0]["role"] == "user"
+        assert len(data[0]["content"]) > 20
+
+    def test_complete_task_clears_prefill_when_done(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        import tools
+        tools.init_loop({"total_tasks": 2})
+        assert self._resume.exists()
+        tools.complete_task({})
+        assert self._resume.exists(), "still active after 1/2"
+        tools.complete_task({})
+        assert not self._resume.exists(), "should be cleared when remaining == 0"
+
+    def test_reset_loop_clears_prefill(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        import tools
+        tools.init_loop({"total_tasks": 5})
+        assert self._resume.exists()
+        tools.reset_loop({})
+        assert not self._resume.exists()
+
+    def test_clear_is_safe_when_file_absent(self, tmp_path, monkeypatch):
+        import tools
+        assert not self._resume.exists()
+        tools._clear_resume_prefill()  # must not raise

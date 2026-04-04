@@ -322,4 +322,7 @@ def register(ctx):
     # Install gateway hook for messaging-platform loop progress logging
     _install_gateway_hook()
 
+    # Configure ~/.hermes/config.yaml for session auto-resume (idempotent)
+    tools._configure_auto_resume()
+
     logger.info("[hermes-loop] Plugin registered with 6 tools and 4 hooks")
