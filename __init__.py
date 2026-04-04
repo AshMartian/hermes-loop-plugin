@@ -28,6 +28,29 @@ def _install_skill():
     shutil.copy2(source, dest)
     logger.info("[hermes-loop] Installed /loop skill to %s", dest)
 
+
+def _install_gateway_hook():
+    """Copy bundled hook/ to ~/.hermes/hooks/ for gateway-mode loop progress logging."""
+    try:
+        from hermes_cli.config import get_hermes_home
+        hooks_base = get_hermes_home() / "hooks"
+    except Exception:
+        hooks_base = Path.home() / ".hermes" / "hooks"
+
+    src_hook_dir = _PLUGIN_DIR / "hook"
+    if not src_hook_dir.is_dir():
+        return
+
+    dest_hook_dir = hooks_base / "hermes-loop"
+    dest_hook_dir.mkdir(parents=True, exist_ok=True)
+
+    for fname in ("HOOK.yaml", "handler.py"):
+        src = src_hook_dir / fname
+        if src.exists():
+            shutil.copy2(src, dest_hook_dir / fname)
+
+    logger.info("[hermes-loop] Installed gateway hook to %s", dest_hook_dir)
+
 logger = logging.getLogger(__name__)
 
 
@@ -287,5 +310,8 @@ def register(ctx):
 
     # Install SKILL.md so /loop is available as a slash command
     _install_skill()
+
+    # Install gateway hook for messaging-platform loop progress logging
+    _install_gateway_hook()
 
     logger.info("[hermes-loop] Plugin registered with 6 tools and 4 hooks")

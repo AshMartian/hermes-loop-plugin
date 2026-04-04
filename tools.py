@@ -5,6 +5,8 @@ These provide both direct JSON responses and command-style interfaces."""
 import json
 from pathlib import Path
 
+from . import display as _display
+
 
 def loop_status(args: dict, **kwargs) -> str:
     """Check current loop status (alias for /loop_status).
@@ -15,6 +17,14 @@ def loop_status(args: dict, **kwargs) -> str:
     
     cmds = LoopCommands()
     result = cmds.status()
+
+    # TUI: show compact status line in terminal
+    _display.show_loop_status(
+        done=result.get("completed_tasks", 0),
+        total=result.get("total_tasks", 0),
+        blocking_issues=result.get("blocking_issues"),
+    )
+
     return json.dumps(result, indent=2)
 
 
@@ -54,6 +64,10 @@ def init_loop(args: dict, **kwargs) -> str:
         condition=args.get('condition'),
         expected_value=args.get('expected_value')
     )
+
+    # TUI: announce loop start
+    _display.show_loop_start(args.get('total_tasks', 0))
+
     return json.dumps(result)
 
 
@@ -67,6 +81,15 @@ def complete_task(args: dict, **kwargs) -> str:
     
     cmds = LoopCommands()
     result = cmds.complete_task()
+
+    # TUI: update progress bar
+    if result.get("success"):
+        _display.show_task_complete(
+            done=result.get("new_count", 0),
+            total=result.get("total_tasks", 0),
+            remaining=result.get("remaining", 0),
+        )
+
     return json.dumps(result)
 
 
@@ -82,7 +105,12 @@ def add_blocking_issue(args: dict, **kwargs) -> str:
     from .commands import LoopCommands
     
     cmds = LoopCommands()
-    result = cmds.add_blocking_issue(args.get('issue', ''))
+    issue_text = args.get('issue', '')
+    result = cmds.add_blocking_issue(issue_text)
+
+    # TUI: show blocked banner
+    _display.show_loop_blocked(issue_text)
+
     return json.dumps(result)
 
 

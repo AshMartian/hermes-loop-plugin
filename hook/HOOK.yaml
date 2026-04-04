@@ -1,0 +1,9 @@
+name: hermes-loop
+description: >
+  Shows loop progress status after each agent step when the hermes-loop plugin
+  is active. Reads .hermes-loop-state.json from the session working directory
+  and logs a compact progress line whenever loop tools are invoked.
+
+events:
+  - agent:step
+  - agent:end
