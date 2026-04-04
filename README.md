@@ -437,6 +437,10 @@ hermes-loop/
 
 ## Version History
 
+### v1.0.1 (2026-04-04)
+
+- Cleanup and bug fixes
+
 ### v1.0.0 (2026-03-17)
 
 - Initial release with core loop functionality
