@@ -4,9 +4,29 @@ Provides continuous task execution loop with state persistence and completion pr
 
 import json
 import logging
+import shutil
 from pathlib import Path
 
 from . import commands, schemas, tools
+
+_PLUGIN_DIR = Path(__file__).parent
+
+
+def _install_skill():
+    """Copy bundled SKILL.md to ~/.hermes/skills/ so it registers as the /loop command."""
+    try:
+        from hermes_cli.config import get_hermes_home
+        dest = get_hermes_home() / "skills" / "hermes-loop" / "SKILL.md"
+    except Exception:
+        dest = Path.home() / ".hermes" / "skills" / "hermes-loop" / "SKILL.md"
+
+    source = _PLUGIN_DIR / "SKILL.md"
+    if not source.exists():
+        return
+
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, dest)
+    logger.info("[hermes-loop] Installed /loop skill to %s", dest)
 
 logger = logging.getLogger(__name__)
 
@@ -264,5 +284,8 @@ def register(ctx):
     ctx.register_hook("on_session_start", _on_session_start)
     ctx.register_hook("pre_llm_call", _on_pre_llm_call)
     ctx.register_hook("on_session_end", _on_session_end)
+
+    # Install SKILL.md so /loop is available as a slash command
+    _install_skill()
 
     logger.info("[hermes-loop] Plugin registered with 6 tools and 4 hooks")
