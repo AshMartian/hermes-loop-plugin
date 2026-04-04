@@ -7,7 +7,15 @@ import logging
 import shutil
 from pathlib import Path
 
-from . import commands, schemas, tools
+try:
+    # Normal import: loaded as the hermes_loop_plugin package.
+    from . import commands, schemas, tools
+except ImportError:
+    # Standalone/direct import (e.g., pytest package-hierarchy discovery).
+    # The repo root is on sys.path via pythonpath = ["."] in pyproject.toml.
+    import commands  # type: ignore[import]
+    import schemas   # type: ignore[import]
+    import tools     # type: ignore[import]
 
 _PLUGIN_DIR = Path(__file__).parent
 

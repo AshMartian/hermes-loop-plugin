@@ -47,7 +47,7 @@ Run the test script:
 
 ```bash
 cd ~/.hermes/plugins/hermes-loop
-python3 test_ci_cd.py
+python3 tests/test_ci_cd.py
 ```
 
 This verifies:

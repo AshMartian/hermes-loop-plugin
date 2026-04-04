@@ -38,3 +38,8 @@ packages = ["hermes_loop_plugin"]
 [tool.setuptools.package-dir]
 hermes_loop_plugin = ""
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]  # repo root on sys.path so direct imports (commands, display) work
+addopts = "--import-mode=importlib"
+

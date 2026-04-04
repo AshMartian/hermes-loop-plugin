@@ -13,7 +13,9 @@ from typing import Optional
 
 
 # ── colour palette ──────────────────────────────────────────────────────────
-_ANSI = not (os.getenv("NO_COLOR") or os.getenv("HERMES_LOOP_NO_TUI") or not sys.stderr.isatty())
+# Use os.isatty(2) on the raw fd rather than sys.stderr.isatty() so that
+# prompt_toolkit's stderr-patching doesn't give us a false positive.
+_ANSI = not (os.getenv("NO_COLOR") or os.getenv("HERMES_LOOP_NO_TUI") or not os.isatty(2))
 
 def _c(code: str, text: str) -> str:
     return f"\033[{code}m{text}\033[0m" if _ANSI else text
@@ -100,9 +102,10 @@ def show_loop_status(done: int, total: int, blocked: bool = False,
 # ── internal ─────────────────────────────────────────────────────────────────
 
 def _emit(line: str) -> None:
-    """Write one status line to stderr, safely."""
+    """Write one status line directly to fd 2, bypassing prompt_toolkit's sys.stderr patch."""
     try:
-        sys.stderr.write(f"\n  {line}\n")
-        sys.stderr.flush()
+        raw = f"\n  {line}\n"
+        encoding = getattr(sys.stderr, "encoding", None) or "utf-8"
+        os.write(2, raw.encode(encoding, errors="replace"))
     except Exception:
         pass

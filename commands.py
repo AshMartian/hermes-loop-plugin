@@ -163,11 +163,11 @@ class LoopCommands:
                 state = json.load(f)
             
             if issue not in state['blocking_issues']:
+                from datetime import datetime
                 state['blocking_issues'].append(issue)
                 
                 # Add timestamp for tracking
                 if 'issues' not in state:
-                    from datetime import datetime
                     state['issues'] = []
                 state['issues'].append({
                     "issue": issue,

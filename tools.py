@@ -5,7 +5,10 @@ These provide both direct JSON responses and command-style interfaces."""
 import json
 from pathlib import Path
 
-from . import display as _display
+try:
+    from . import display as _display
+except ImportError:
+    import display as _display  # type: ignore[import]
 
 
 def loop_status(args: dict, **kwargs) -> str:
