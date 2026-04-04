@@ -29,7 +29,7 @@ This plugin enables **persistent multi-step workflows** where tasks span multipl
 
 ### 📦 Hermes Installation
 
-The plugin will be available on [[PyPI](https://pypi.org/) for easier installation:](https://pypi.org/project/hermes-loop-plugin/):
+The plugin is available on [PyPI](https://pypi.org/project/hermes-loop-plugin/) and can be installed with hermes cli directly:
 
 ```bash
 hermes plugins install AshMartian/hermes-loop-plugin
@@ -43,6 +43,12 @@ pip install git+https://github.com/AshMartian/hermes-loop-plugin.git@v1.0.0
 ```
 
 After installation, the plugin will be automatically discovered when you start Hermes Agent. No additional configuration required!
+
+## Updating
+
+```bash
+hermes plugins update hermes-loop
+```
 
 ### Verify Installation
 
